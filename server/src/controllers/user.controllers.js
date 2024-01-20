@@ -192,7 +192,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
   if (req.user.role !== "admin") {
     throw new ApiError(403, "Forbidden");
   }
-  const users = await User.find({}).select("-password -refreshToken").exec();
+  const users = await User.find({}).select("-password -refreshToken");
 
   res.status(200).json(new ApiResponse(200, { users }, "Users fetched"));
 });
