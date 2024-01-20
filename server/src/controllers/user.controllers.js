@@ -2,6 +2,7 @@ import User from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import jwt from "jsonwebtoken";
 
 const registerUser = asyncHandler(async (req, res) => {
   const { username, email, password, role } = req.body;
@@ -33,14 +34,25 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Cannot create user");
   }
 
-  res.status(201).json(new ApiResponse(201, createdUser, "User created"));
+  res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        user: createdUser,
+      },
+      "User created"
+    )
+  );
 });
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
+    console.log("generateAccessAndRefreshTokens user", user);
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
+
+    console.log("Access token and refresh token", accessToken, refreshToken);
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
@@ -55,9 +67,9 @@ const generateAccessAndRefreshTokens = async (userId) => {
 };
 
 const loginUser = asyncHandler(async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password, username } = req.body;
 
-  if (!username || !password) {
+  if (!email && !password && !username) {
     throw new ApiError(400, "Missing required fields");
   }
 
@@ -74,6 +86,33 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid password");
   }
+
+  console.log("User", user);
+
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    user._id
+  );
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        { user: loggedInUser, accessToken, refreshToken },
+        "User logged in"
+      )
+    );
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -149,10 +188,56 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
+const getAllUsers = asyncHandler(async (req, res) => {
+  if (req.user.role !== "admin") {
+    throw new ApiError(403, "Forbidden");
+  }
+  const users = await User.find({}).select("-password -refreshToken").exec();
+
+  res.status(200).json(new ApiResponse(200, { users }, "Users fetched"));
+});
+
+const updateUserRole = asyncHandler(async (req, res) => {
+  const { userId, newRole } = req.body;
+
+  if (!userId || !newRole) {
+    throw new ApiError(400, "Missing required fields");
+  }
+
+  if (req.user.role !== "admin") {
+    throw new ApiError(403, "Forbidden");
+  }
+
+  const userToUpdate = await User.findById(userId);
+
+  if (!userToUpdate) {
+    throw new ApiError(404, "User not found");
+  }
+
+  userToUpdate.role = newRole;
+  await userToUpdate.save();
+
+  const updatedUser = await User.findById(userToUpdate._id).select(
+    "-password -refreshToken"
+  );
+
+  res.json(
+    new ApiResponse(
+      200,
+      {
+        user: updatedUser,
+      },
+      "User role updated"
+    )
+  );
+});
+
 export {
   registerUser,
   loginUser,
   generateAccessAndRefreshTokens,
   logoutUser,
   refreshAccessToken,
+  getAllUsers,
+  updateUserRole,
 };

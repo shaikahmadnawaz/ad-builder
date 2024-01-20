@@ -9,6 +9,8 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
       req.cookies?.accessToken ||
       req.header("Authorization")?.replace("Bearer ", "");
 
+    console.log("token", token);
+
     if (!token) {
       throw new ApiError(401, "Unauthorized");
     }
@@ -16,13 +18,16 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
     const user = await User.findById(decodedToken?._id).select(
-      "-password refreshToken"
+      "-password -refreshToken"
     );
+
+    console.log("decodedToken", decodedToken);
 
     if (!user) {
       throw new ApiError(401, "Unauthorized");
     }
 
+    console.log("jwt user", user);
     req.user = user;
     next();
   } catch (error) {
@@ -32,6 +37,7 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
 
 const checkRole = (role) => (req, _, next) => {
   const userRole = req.user.role;
+  console.log("userRole", userRole);
   if (userRole !== role) {
     throw new ApiError(403, "Forbidden");
   }
