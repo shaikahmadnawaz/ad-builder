@@ -10,7 +10,6 @@ import {
 import { upload } from "../middlewares/upload.middleware.js";
 
 const router = Router();
-
 router
   .route("/")
   .post(

@@ -11,14 +11,20 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Missing required fields");
   }
 
-  const mediaContent = req.file?.path;
-  console.log("mediaContent", mediaContent);
+  console.log("req.file", req.file);
+
+  const mediaPath = req.file?.path;
+  console.log("media path", mediaPath);
+
+  if (!mediaPath) {
+    throw new ApiError(400, "Missing media");
+  }
 
   try {
-    const mediaUrl = await uploadOnCloudinary(mediaContent);
+    const mediaUrl = await uploadOnCloudinary(mediaPath);
     console.log("mediaUrl", mediaUrl);
 
-    if (!mediaUrl) {
+    if (!mediaUrl.url) {
       throw new ApiError(500, "Cannot upload media");
     }
 
@@ -28,7 +34,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       title,
       description,
       targetAudience,
-      media: mediaUrl.url, // Use 'secure_url' instead of 'url'
+      media: mediaUrl.url,
       duration,
       scheduling,
       advertiser: req.user._id,

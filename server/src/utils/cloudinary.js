@@ -10,21 +10,18 @@ cloudinary.config({
 const uploadOnCloudinary = async (localFilePath) => {
   console.log(localFilePath);
   console.log("uploading to cloudinary");
-  console.log(process.env.CLOUDINARY_CLOUD_NAME);
-  console.log(process.env.CLOUDINARY_API_KEY);
-  console.log(process.env.CLOUDINARY_API_SECRET);
   try {
     if (!localFilePath) throw new Error("Local file path is missing");
 
     // Upload to cloudinary if localFilePath exists
-    const result = await cloudinary.uploader.upload(localFilePath, {
+    const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
     });
 
     console.log("File uploaded to Cloudinary:", result.url);
 
     fs.unlinkSync(localFilePath); // Remove file from localFilePath after uploading to Cloudinary
-    return result;
+    return response;
   } catch (error) {
     console.error("Error uploading to Cloudinary:", error.message);
     fs.unlinkSync(localFilePath);
