@@ -32,9 +32,6 @@ const userSchema = new Schema(
       enum: ["admin", "advertiser", "contentCreator"],
       default: "advertiser",
     },
-    refreshToken: {
-      type: String,
-    },
   },
   { timestamps: true }
 );
@@ -61,21 +58,6 @@ userSchema.methods.generateAccessToken = function () {
     process.env.ACCESS_TOKEN_SECRET,
     {
       expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
-    }
-  );
-};
-
-userSchema.methods.generateRefreshToken = function () {
-  return jwt.sign(
-    {
-      _id: this._id,
-      role: this.role,
-      email: this.email,
-      username: this.username,
-    },
-    process.env.REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
     }
   );
 };
