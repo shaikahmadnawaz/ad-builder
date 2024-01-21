@@ -23,17 +23,13 @@ const advertisementSchema = new Schema(
       max: 50,
       trim: true,
     },
-    multimediaContent: {
-      image: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-      video: {
-        type: String,
-        required: true,
-        trim: true,
-      },
+    duration: {
+      type: Number,
+      required: true,
+    },
+    media: {
+      type: String,
+      required: true,
     },
     scheduling: {
       type: Date,

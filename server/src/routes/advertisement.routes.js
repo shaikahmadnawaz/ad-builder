@@ -3,12 +3,32 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { checkRole } from "../middlewares/auth.middleware.js";
 import {
   createAdvertisement,
+  deleteAdvertisement,
   getAllAdvertisements,
+  updateAdvertisement,
 } from "../controllers/advertisement.controllers.js";
+import { upload } from "../middlewares/upload.middleware.js";
 
 const router = Router();
 
-router.route("/").post(verifyJWT, checkRole("advertiser"), createAdvertisement);
-router.route("/").get(verifyJWT, checkRole("advertiser"), getAllAdvertisements);
+router
+  .route("/")
+  .post(
+    verifyJWT,
+    checkRole("advertiser"),
+    upload.single("media"),
+    createAdvertisement
+  )
+  .get(verifyJWT, checkRole("advertiser"), getAllAdvertisements);
+
+router
+  .route("/:advertisementId")
+  .patch(
+    verifyJWT,
+    checkRole("advertiser"),
+    upload.single("media"),
+    updateAdvertisement
+  )
+  .delete(verifyJWT, checkRole("advertiser"), deleteAdvertisement);
 
 export default router;
