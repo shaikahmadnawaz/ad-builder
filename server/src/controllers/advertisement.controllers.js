@@ -2,7 +2,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import Advertisement from "../models/advertisement.model.js";
-import { deleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnS3 } from "../utils/s3.js";
 
 const createAdvertisement = asyncHandler(async (req, res) => {
   const { title, description, targetAudience, scheduling, duration } = req.body;
@@ -11,17 +11,15 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Missing required fields");
   }
 
-  console.log("req.file", req.file);
+  const mediaFile = req.file;
+  console.log("media file", mediaFile);
 
-  const mediaPath = req.file?.path;
-  console.log("media path", mediaPath);
-
-  if (!mediaPath) {
+  if (!mediaFile) {
     throw new ApiError(400, "Missing media");
   }
 
   try {
-    const mediaUrl = await uploadOnCloudinary(mediaPath);
+    const mediaUrl = await uploadOnS3(mediaFile);
     console.log("mediaUrl", mediaUrl);
 
     if (!mediaUrl.url) {
