@@ -3,6 +3,9 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import Advertisement from "../models/advertisement.model.js";
 import { deleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
+import path from "path";
+import fs from "fs";
+import { deleteFile } from "../middlewares/upload.middleware.js";
 
 const createAdvertisement = asyncHandler(async (req, res) => {
   const { title, description, targetAudience, scheduling, duration } = req.body;
@@ -21,20 +24,19 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   }
 
   try {
-    const mediaUrl = await uploadOnCloudinary(mediaPath);
-    console.log("mediaUrl", mediaUrl);
+    const destinationPath = path.join(
+      "./public/uploads",
+      path.basename(mediaPath)
+    );
+    fs.copyFileSync(mediaPath, destinationPath);
 
-    if (!mediaUrl.url) {
-      throw new ApiError(500, "Cannot upload media");
-    }
-
-    console.log(mediaUrl.url);
+    await deleteFile(mediaPath);
 
     const advertisement = await Advertisement.create({
       title,
       description,
       targetAudience,
-      media: mediaUrl.url,
+      media: destinationPath,
       duration,
       scheduling,
       advertiser: req.user._id,
