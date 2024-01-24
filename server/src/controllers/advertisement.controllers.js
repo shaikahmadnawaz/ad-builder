@@ -19,20 +19,18 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   }
 
   try {
-    const mediaUrl = await uploadOnS3(mediaFile);
+    await uploadOnS3(mediaFile);
+
+    const sanitizedFileName = mediaFile.originalname.replace(/\s+/g, "_");
+
+    const mediaUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${sanitizedFileName}`;
     console.log("mediaUrl", mediaUrl);
-
-    if (!mediaUrl.url) {
-      throw new ApiError(500, "Cannot upload media");
-    }
-
-    console.log(mediaUrl.url);
 
     const advertisement = await Advertisement.create({
       title,
       description,
       targetAudience,
-      media: mediaUrl.url,
+      media: mediaUrl,
       duration,
       scheduling,
       advertiser: req.user._id,
@@ -42,7 +40,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       .status(201)
       .json(new ApiResponse(201, { advertisement }, "Advertisement created"));
   } catch (error) {
-    console.error("Error creating advertisement:", error);
+    console.error("Error creating advertisement:", error.message);
     throw new ApiError(500, "Cannot create advertisement");
   }
 });

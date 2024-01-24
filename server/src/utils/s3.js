@@ -1,4 +1,6 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import dotenv from "dotenv";
+dotenv.config();
 
 const s3Client = new S3Client({
   region: process.env.AWS_ACCOUNT_REGION,
@@ -12,20 +14,19 @@ const uploadOnS3 = async (file) => {
   try {
     if (!file) throw new Error("File is missing");
 
-    // Logging additional information
-    console.log("File buffer:", file.buffer);
-    console.log("File name:", file.originalname);
+    // Replace spaces in the file name with underscores
+    const sanitizedFileName = file.originalname.replace(/\s+/g, "_");
 
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME,
-      Key: `${file.originalname}`,
+      Key: sanitizedFileName,
       Body: file.buffer,
       ContentType: file.mimetype,
     });
 
     await s3Client.send(command);
   } catch (error) {
-    console.error("Failed to upload file to S3:", error);
+    console.error("Failed to upload file to S3:", error.message);
     throw new Error("Failed to upload file to S3");
   }
 };
