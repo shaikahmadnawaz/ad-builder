@@ -31,6 +31,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       description,
       targetAudience,
       media: mediaUrl,
+
       duration,
       scheduling,
       advertiser: req.user._id,
