@@ -2,7 +2,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import Advertisement from "../models/advertisement.model.js";
-import { uploadOnS3 } from "../utils/s3.js";
+import { deleteOnS3, uploadOnS3 } from "../utils/s3.js";
 
 const createAdvertisement = asyncHandler(async (req, res) => {
   const { title, description, targetAudience, scheduling, duration } = req.body;
@@ -31,7 +31,6 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       description,
       targetAudience,
       media: mediaUrl,
-
       duration,
       scheduling,
       advertiser: req.user._id,
@@ -56,11 +55,15 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
 
   console.log("req.file", req.file);
 
-  const mediaContent = req.file?.path;
-
-  const mediaUrl = await uploadOnCloudinary(mediaContent);
+  const mediaFile = req.file;
 
   try {
+    await uploadOnS3(mediaFile);
+
+    const sanitizedFileName = mediaFile.originalname.replace(/\s+/g, "_");
+
+    const mediaUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${sanitizedFileName}`;
+
     const updatedAdvertisement = await Advertisement.findByIdAndUpdate(
       advertisementId,
       {
@@ -110,13 +113,23 @@ const deleteAdvertisement = asyncHandler(async (req, res) => {
       throw new ApiError(404, "Advertisement not found");
     }
 
-    await deleteOnCloudinary(deletedAdvertisement.media.public_id);
+    // Extract the file name from the media URL or adjust based on your model structure
+    const fileName = extractFileNameFromUrl(deletedAdvertisement.media);
+
+    // Delete the file from S3
+    await deleteOnS3(fileName);
 
     res.status(200).json(new ApiResponse(200, {}, "Advertisement deleted"));
   } catch (error) {
     throw new ApiError(500, "Cannot delete advertisement");
   }
 });
+
+// Add a helper function to extract the file name from the S3 URL
+const extractFileNameFromUrl = (url) => {
+  const urlParts = url.split("/");
+  return urlParts[urlParts.length - 1];
+};
 
 const getAllAdvertisements = asyncHandler(async (req, res) => {
   const advertisements = await Advertisement.find({
