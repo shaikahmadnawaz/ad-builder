@@ -2,10 +2,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import Advertisement from "../models/advertisement.model.js";
-import { deleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
-import path from "path";
-import fs from "fs";
-import { deleteFile } from "../middlewares/upload.middleware.js";
+import { uploadOnS3 } from "../utils/s3.js";
 
 const createAdvertisement = asyncHandler(async (req, res) => {
   const { title, description, targetAudience, scheduling, duration } = req.body;
@@ -14,29 +11,27 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Missing required fields");
   }
 
-  console.log("req.file", req.file);
+  const mediaFile = req.file;
+  console.log("media file", mediaFile);
 
-  const mediaPath = req.file?.path;
-  console.log("media path", mediaPath);
-
-  if (!mediaPath) {
+  if (!mediaFile) {
     throw new ApiError(400, "Missing media");
   }
 
   try {
-    const destinationPath = path.join(
-      "./public/uploads",
-      path.basename(mediaPath)
-    );
-    fs.copyFileSync(mediaPath, destinationPath);
+    await uploadOnS3(mediaFile);
 
-    await deleteFile(mediaPath);
+    const sanitizedFileName = mediaFile.originalname.replace(/\s+/g, "_");
+
+    const mediaUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${sanitizedFileName}`;
+    console.log("mediaUrl", mediaUrl);
 
     const advertisement = await Advertisement.create({
       title,
       description,
       targetAudience,
-      media: destinationPath,
+      media: mediaUrl,
+
       duration,
       scheduling,
       advertiser: req.user._id,
@@ -46,7 +41,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       .status(201)
       .json(new ApiResponse(201, { advertisement }, "Advertisement created"));
   } catch (error) {
-    console.error("Error creating advertisement:", error);
+    console.error("Error creating advertisement:", error.message);
     throw new ApiError(500, "Cannot create advertisement");
   }
 });

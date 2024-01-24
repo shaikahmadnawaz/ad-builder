@@ -4,18 +4,13 @@ import { v4 as uuidv4 } from "uuid";
 import { promisify } from "util";
 import fs from "fs";
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "./public/temp");
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${uuidv4()}-${uniqueSuffix}${path.extname(file.originalname)}`);
-  },
-});
+const storage = multer.memoryStorage({});
 
 export const upload = multer({
   storage,
+  limits: {
+    fileSize: 1024 * 1024 * 25,
+  },
 });
 
 export const deleteFile = promisify(fs.unlink);
