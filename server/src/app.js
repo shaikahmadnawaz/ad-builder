@@ -26,6 +26,9 @@ app.use(
 );
 app.use(cookieParser());
 
+app.get("/", (req, res) => {
+  res.json({ message: "Welcome to ad-builder API" });
+});
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/advertisements", advertisementRouter);
 export default app;
