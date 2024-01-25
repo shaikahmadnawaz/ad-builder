@@ -4,6 +4,7 @@ import { checkRole } from "../middlewares/auth.middleware.js";
 import {
   createAdvertisement,
   deleteAdvertisement,
+  getAdvertisement,
   getAllAdvertisements,
   updateAdvertisement,
 } from "../controllers/advertisement.controllers.js";
@@ -22,6 +23,7 @@ router
 
 router
   .route("/:advertisementId")
+  .get(getAdvertisement)
   .patch(
     verifyJWT,
     checkRole("advertiser"),

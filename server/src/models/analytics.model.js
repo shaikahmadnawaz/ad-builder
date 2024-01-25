@@ -5,7 +5,6 @@ const analyticsSchema = new Schema(
     advertisement: {
       type: Schema.Types.ObjectId,
       ref: "Advertisement",
-      required: true,
     },
     views: {
       type: Number,

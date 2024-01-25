@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import Advertisement from "../models/advertisement.model.js";
 import { deleteOnS3, uploadOnS3 } from "../utils/s3.js";
+import Analytics from "../models/analytics.model.js";
 
 const createAdvertisement = asyncHandler(async (req, res) => {
   const { title, description, targetAudience, scheduling, duration } = req.body;
@@ -44,6 +45,41 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Cannot create advertisement");
   }
 });
+
+const getAdvertisement = asyncHandler(async (req, res) => {
+  const { advertisementId } = req.params;
+
+  const advertisement = await Advertisement.findById(advertisementId);
+
+  if (!advertisement) {
+    throw new ApiError(404, "Advertisement not found");
+  }
+
+  await incrementAnalytics(advertisementId, "views");
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, { advertisement }, "Advertisement fetched"));
+});
+
+const incrementAnalytics = async (advertisementId, field) => {
+  try {
+    let analyticsData = await Analytics.findOne({
+      advertisement: advertisementId,
+    });
+
+    if (!analyticsData) {
+      analyticsData = await Analytics.create({
+        advertisement: advertisementId,
+      });
+    }
+
+    analyticsData[field] += 1;
+    await analyticsData.save();
+  } catch (error) {
+    console.error(`Error tracking ${field}:`, error.message);
+  }
+};
 
 const updateAdvertisement = asyncHandler(async (req, res) => {
   const { advertisementId } = req.params;
@@ -146,4 +182,5 @@ export {
   updateAdvertisement,
   deleteAdvertisement,
   getAllAdvertisements,
+  getAdvertisement,
 };
